@@ -41,7 +41,18 @@ for idx, row in df.iterrows():
 st.title("Aerospace Engineering Curriculum Map")
 selected_course = st.selectbox("Select a course to trace its dependencies:", df["Course Code"])
 
-# Get downstream nodes
+# Get upstream and downstream nodes
+def get_upstream(graph, start_node):
+    visited = set()
+    stack = [start_node]
+    while stack:
+        node = stack.pop()
+        if node not in visited:
+            visited.add(node)
+            stack.extend(graph.predecessors(node))
+    visited.discard(start_node)
+    return visited
+
 def get_downstream(graph, start_node):
     visited = set()
     stack = [start_node]
@@ -53,21 +64,18 @@ def get_downstream(graph, start_node):
     visited.discard(start_node)
     return visited
 
+upstream = get_upstream(G_full, selected_course)
 downstream = get_downstream(G_full, selected_course)
+connected = upstream.union(downstream)
 
-# Create subgraph for visualization
+# Create display subgraph
 G_display = nx.DiGraph()
 for node in G_full.nodes():
     G_display.add_node(node)
 
-for source in downstream:
-    for target in G_full.successors(source):
-        if target in downstream or target == selected_course:
-            G_display.add_edge(source, target)
-
-for target in G_full.successors(selected_course):
-    if target in downstream:
-        G_display.add_edge(selected_course, target)
+for u, v in G_full.edges():
+    if selected_course in (u, v) or (u in connected and v in connected):
+        G_display.add_edge(u, v)
 
 # Draw graph
 fig, ax = plt.subplots(figsize=(16, 10))
@@ -75,7 +83,7 @@ node_colors = []
 for node in G_display.nodes():
     if node == selected_course:
         node_colors.append("orange")
-    elif node in downstream:
+    elif node in connected:
         node_colors.append("lightgreen")
     else:
         node_colors.append("lightblue")
@@ -83,6 +91,6 @@ for node in G_display.nodes():
 nx.draw(G_display, pos=positions, with_labels=True, node_color=node_colors,
         node_size=2200, font_size=9, font_weight="bold", arrows=True, ax=ax)
 
-plt.title(f"Dependencies from {selected_course}", fontsize=14)
+plt.title(f"Upstream & Downstream Dependencies for {selected_course}", fontsize=14)
 st.pyplot(fig)
-st.caption("Orange = selected course | Green = courses that depend on it")
+st.caption("Orange = selected course | Green = upstream/downstream connected courses")

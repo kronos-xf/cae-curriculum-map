@@ -39,7 +39,11 @@ for idx, row in df.iterrows():
 
 # Streamlit UI
 st.title("Aerospace Engineering Curriculum Map")
-selected_course = st.selectbox("Select a course to trace its dependencies:", df["Course Code"])
+
+# Create mapping for dropdown
+course_options = {f"{row['Course Code']} – {row['Course Title']}": row["Course Code"] for _, row in df.iterrows()}
+dropdown_selection = st.selectbox("Select a course to trace its dependencies:", list(course_options.keys()))
+selected_course = course_options[dropdown_selection]
 
 # Get upstream and downstream nodes
 def get_upstream(graph, start_node):
